@@ -1,6 +1,7 @@
 package com.auto.oneclean;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -13,6 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import static org.junit.Assert.*;
 
@@ -58,24 +60,21 @@ public class ExampleInstrumentedTest {
             userLayout = new UiObject(new UiSelector().className("android.widget.LinearLayout")
                     .resourceId("android.lite.clean:id/a6r"));
             userLayout.click();
-
-            goToCloseRedPkg();
-
         } catch (Exception e) {
             e.printStackTrace();
             mProcesser.waitAMonent(1);
-            mDevice.pressBack();
+            //mDevice.pressBack();
         }
-
+        mProcesser.waitAMonent(1);
+        goToCloseRedPkg();
     }
+
     /**
      * 清理大师首次启动页 点击启动
      */
 
     public void goToOneStart() {
         mProcesser.pritLog("============== goToOneStart ===================");
-
-
         UiObject userOK = new UiObject(new UiSelector().className("android.widget.RelativeLayout")
                 .resourceId("android.lite.clean:id/s4"));
         try {
@@ -99,18 +98,18 @@ public class ExampleInstrumentedTest {
                         .resourceId("android.lite.clean:id/x3"));
                 userOpenRedPkg.click();
                 mProcesser.waitAMonent(1);
+                goSignIn();
             } else {
                 userLayout = new UiObject(new UiSelector().className("android.widget.LinearLayout")
                         .resourceId("android.lite.clean:id/a6r"));
                 userLayout.click();
             }
-            mProcesser.waitAMonent(1);
         } catch (Exception e) {
             e.printStackTrace();
             mProcesser.waitAMonent(1);
             mDevice.pressBack();
         }
-        goSignIn();
+
     }
 
     /**
@@ -139,6 +138,7 @@ public class ExampleInstrumentedTest {
      */
     UiObject userSignIn;
     public HttpGet httpGet = new HttpGet();
+    boolean result = true;
 
     public void goSignIn() {
 
@@ -150,21 +150,17 @@ public class ExampleInstrumentedTest {
             mProcesser.pritLog("============== HttpGet()  初始化 请求数据 ===================");
             httpGet.getData();
             mProcesser.waitAMonent(30);
-            UiObject userSignIns = new UiObject(new UiSelector().className("android.widget.EditText").resourceId("android.lite.clean:id/wj"));
-            //userSignIn = new UiObject(new UiSelector().className("android.widget.TextView"));
-
             while (mProcesser.exitObjById("android.lite.clean:id/vj", 1)) {
+                mProcesser.waitAMonent(1);
                 userSignIn.click();
                 mProcesser.waitAMonent(30);
             }
-            cellPhoneNumberSJ = httpGet.getCellNumberSJ();
+            mProcesser.waitAMonent(1);
+
             mProcesser.waitAMonent(2);
-            //cellPhoneNumber = httpGet.getCellNumberZJSJH("15686468495");
-            //cellPhoneNumber = "15686468495";
-            //httpGet.getSmsMsg(cellPhoneNumberSJ);
-
-            //sms = httpGet.getSmsMsg(cellPhoneNumberSJ);
-
+            UiObject userSignIns = new UiObject(new UiSelector().className("android.widget.EditText").resourceId("android.lite.clean:id/wj"));
+            //-----------------     取手机号   随机取      ----
+            cellPhoneNumberSJ = httpGet.getCellNumberSJ();
             if (mProcesser.exitObjById("android.lite.clean:id/wj", 1)) {
                 mProcesser.pritLog(" =======   cellPhoneNumber : +++++++++++++++ " + cellPhoneNumberSJ);
                 userSignIns.setText(cellPhoneNumberSJ);
@@ -172,49 +168,74 @@ public class ExampleInstrumentedTest {
                 userSignIn.click();
             }
             int i = 0;
-            while (sms == null && i < 6) {
-
+            while (!result) {
                 mProcesser.pritLog("-----------cellPhoneNumber ---------短信获取次数------   " + i);
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            mProcesser.pritLog("-----------cellPhoneNumber ---------------   " + sms);
-                            sms = httpGet.getSmsMsg(cellPhoneNumberSJ);
-
-                            TimeUnit.SECONDS.sleep(5);
-                        } catch (
-                                InterruptedException e) {
-                            e.printStackTrace();
+                try {
+                    Log.e("com.aotu.clean", "      Thread  run: ");
+                    mProcesser.pritLog("-----------cellPhoneNumber ---------------   " + sms);
+                    //Thread.sleep(5 * 1000);
+                    TimeUnit.SECONDS.sleep(11);
+                    i++;
+                    if (sms == null) {
+                        sms = httpGet.getSmsMsg(cellPhoneNumberSJ);
+                        if (i == 6) {
+                            System.out.println("======   ==== result = false ======");
+                            result = true;
                         }
                     }
-                }).start();
-                i++;
-            }
+                } catch (
+                        InterruptedException e) {
+                    e.printStackTrace();
+                }
+                String sms_number = Pattern.compile("[^0-9]").matcher(sms).replaceAll("");
+                sms = sms_number;
+                System.out.println("==================   SMS  信息==================     " + sms);
 
+            }
+            //cellPhoneNumber = httpGet.getCellNumberZJSJH("15686468495");
+            //cellPhoneNumber = "15686468495";
+            smsInput(sms);
         } catch (Exception e) {
             e.printStackTrace();
             mProcesser.waitAMonent(1);
-            mDevice.pressBack();
+            //mDevice.pressBack();
         }
-        mProcesser.waitAMonent(10);
-        smsInput(sms);
+
     }
 
     /**
      * 短信验证码输入
      */
-    public void smsInput(String sms) {
-
-        //UiObject smsinput = new UiObject(new UiSelector().className("android.widget.LinearLayout"));
+    public void smsInput(String sms_number) {
+        if (sms_number == null) return;
+        StringBuffer sb = new StringBuffer(sms_number);
+        System.out.println(sb.charAt(0));
+        System.out.println(sb.charAt(1));
+        System.out.println(sb.charAt(2));
+        System.out.println(sb.charAt(3));
+        System.out.println(sb.charAt(4));
+        System.out.println(sb.charAt(5));
         try {
             UiObject smsinput = new UiObject(new UiSelector().className("android.widget.LinearLayout"));
-            UiObject smstext = smsinput.getFromParent(new UiSelector().className("android.widget.TextView"));
-            smstext.setText(sms);
+            UiObject smstext1 = smsinput.getFromParent(new UiSelector().className("android.widget.TextView").index(0));
+            UiObject smstext2 = smsinput.getFromParent(new UiSelector().className("android.widget.TextView").index(2));
+            UiObject smstext3 = smsinput.getFromParent(new UiSelector().className("android.widget.TextView").index(3));
+            UiObject smstext4 = smsinput.getFromParent(new UiSelector().className("android.widget.TextView").index(4));
+            UiObject smstext5 = smsinput.getFromParent(new UiSelector().className("android.widget.TextView").index(5));
+            UiObject smstext6 = smsinput.getFromParent(new UiSelector().className("android.widget.TextView").index(6));
+
+            smstext1.setText(String.valueOf(sb.charAt(0)));
+            smstext2.setText(String.valueOf(sb.charAt(1)));
+            smstext3.setText(String.valueOf(sb.charAt(2)));
+            smstext4.setText(String.valueOf(sb.charAt(3)));
+            smstext5.setText(String.valueOf(sb.charAt(4)));
+            smstext6.setText(String.valueOf(sb.charAt(5)));
+
+            mProcesser.waitAMonent(2);
         } catch (UiObjectNotFoundException e) {
             mProcesser.waitAMonent(1);
             e.printStackTrace();
-            mDevice.pressBack();
+            //mDevice.pressBack();
         }
     }
 

@@ -265,6 +265,7 @@ public class HttpGet {
                     Cell_phone_number = value;
                 } else if (key.equals("textContent")) {
                     mSms_Numeber = value;
+                    Log.e(TAG, "getSmsMsg: " + mSms_Numeber);
                 }
 
             }
