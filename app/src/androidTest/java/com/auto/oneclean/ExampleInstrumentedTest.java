@@ -1,8 +1,13 @@
 package com.auto.oneclean;
 
-import android.bluetooth.BluetoothClass;
 import android.content.Context;
 import android.util.Log;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -11,13 +16,7 @@ import androidx.test.uiautomator.UiObject;
 import androidx.test.uiautomator.UiObjectNotFoundException;
 import androidx.test.uiautomator.UiSelector;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -39,6 +38,8 @@ public class ExampleInstrumentedTest {
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         assertEquals("com.auto.oneclean", appContext.getPackageName());
+        //读取指定号码
+        //appContext.getApplicationContext().getResources().getText(R.id.clearBtn);
 
         mDevice = UiDevice.getInstance(androidx.test.platform.app.InstrumentationRegistry.getInstrumentation());
         mProcesser = new Processer(mDevice, CLEAN_PKG_NAME);
@@ -211,8 +212,6 @@ public class ExampleInstrumentedTest {
         System.out.println(sms_number);
 
         try {
-            // UiObject smsinput = new UiObject(new UiSelector().className("android.widget.LinearLayout").resourceId("android.lite.clean:id/wl"));
-            // System.out.println("   ---==smsinput.getChildCount() =----        " + smsinput.getChildCount());
 
             UiObject smstext1 = new UiObject(new UiSelector().className("android.widget.TextView").instance(2));
             smstext1.legacySetText(sms_number);
