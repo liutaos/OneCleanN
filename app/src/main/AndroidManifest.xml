@@ -1,10 +1,29 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ ********************************************************************************
+  ~         文 件：AndroidManifest.xml     模 块：app      项 目：OneClean
+  ~         当前修改时间：2019年09月25日 11:03:19
+  ~         上次修改时间：2019年09月25日 11:03:09
+  ~         作者：liutaos@qq.com        Copyright (c) 2019
+  ~ ********************************************************************************
+  -->
+
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.auto.oneclean">
-    <uses-permission android:name="android.permission.CLEAR_APP_USER_DATA"
-        tools:ignore="ProtectedPermissions" />
+    package="com.auto.oneclean"
+    tools:ignore="MissingVersion">
+    <!-- 单元测试配置
+    <uses-library
+        android:name="android.test.runner"
+        tools:ignore="WrongManifestParent" />-->
 
+    <uses-permission
+        android:name="android.permission.CLEAR_APP_USER_DATA"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission
+        android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"
+        tools:ignore="ProtectedPermissions" />
 
     <application
         android:allowBackup="true"
@@ -13,7 +32,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        tools:ignore="GoogleAppIndexingWarning">
+        tools:ignore="GoogleAppIndexingWarning,RtlEnabled,UnusedAttribute">
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

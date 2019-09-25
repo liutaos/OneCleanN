@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ ********************************************************************************
+  ~         文 件：ic_launcher_background.xml     模 块：app      项 目：OneClean
+  ~         当前修改时间：2019年09月25日 11:03:46
+  ~         上次修改时间：2019年08月26日 19:04:50
+  ~         作者：liutaos@qq.com        Copyright (c) 2019
+  ~ ********************************************************************************
+  -->
+
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"

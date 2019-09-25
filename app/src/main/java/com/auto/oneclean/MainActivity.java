@@ -1,3 +1,12 @@
+/*
+ * *******************************************************************************
+ *         文 件：MainActivity.java     模 块：app      项 目：OneClean
+ *         当前修改时间：2019年09月25日 11:03:46
+ *         上次修改时间：2019年09月25日 11:03:46
+ *         作者：liutaos@qq.com        Copyright (c) 2019
+ * *******************************************************************************
+ */
+
 package com.auto.oneclean;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -5,14 +14,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.pm.ApplicationInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.renderscript.ScriptGroup;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import com.auto.oneclean.interfaces.InfoCallback;
+import com.auto.oneclean.utils.CopyFile;
 import com.auto.oneclean.utils.DataCleanManager;
 import com.auto.oneclean.utils.RootUtils;
 
@@ -30,6 +44,9 @@ public class MainActivity extends AppCompatActivity {
     private RadioGroup radioGroup;
     private String selectPkName;
     public final String appPackageName = "android.lite.clean";
+    public String inPut;
+    private final String SDCARD = "/storage/emulated/0/Pictures/";
+    private final String TMP = "/storage/emulated/0/tmp_number.txt";
 
     private InfoCallback mInfoCallback;
 
@@ -37,35 +54,40 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        radioGroup = findViewById(R.id.rg_pkg);
-        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-
-            @Override
-            public void onCheckedChanged(RadioGroup radioGroup, int i) {
-                int id = radioGroup.getCheckedRadioButtonId();
-                RadioButton radioButton = findViewById(id);
-                selectPkName = radioButton.getText().toString();
-            }
-        });
-        initData();
-
-
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
-        findViewById(R.id.clearBtn).setOnClickListener(new View.OnClickListener() {
+        EditText inputs = findViewById(R.id.input_phone_number);
+        inputs.addTextChangedListener(new TextWatcher() {
             @Override
-            public void onClick(View v) {
-                clearData();
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                inPut = s.toString();
             }
         });
+
         findViewById(R.id.runBtn).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                runMyUiautomator(view);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        CopyFile copy = new CopyFile();
+                        copy.copyFile(SDCARD + inPut + ".txt", TMP);
+                    }
+                }).start();
+                new UiautomatorThread("com.auto.oneclean", "ExampleInstrumentedTest", "useAppContext").start();
             }
         });
 
@@ -95,43 +117,15 @@ public class MainActivity extends AppCompatActivity {
      * @param v
      */
     public void runMyUiautomator(View v) {
-        if (!TextUtils.isEmpty(selectPkName)) {
-
-            String packgeName = start_tag + selectPkName;
+        //if (!TextUtils.isEmpty("oneclean")) {
+            String packgeName = "com.auto.oneclean";
             Log.i(TAG, "runMyUiautomator: ");
-            new UiautomatorThread(packgeName, "ExampleInstrumentedTest", "useAppContext").start();
-        } else {
-            Toast.makeText(this, "请选择一个应用", Toast.LENGTH_SHORT).show();
-        }
+            new UiautomatorThread("com.auto.oneclean", "ExampleInstrumentedTest", "useAppContext").start();
+       // } else {
+         Toast.makeText(this, "请选择一个应用", Toast.LENGTH_SHORT).show();
+        //}
 
     }
 
-    public void clearData() {
-        new TaskClear().execute();
-
-    }
-
-
-    class TaskClear extends AsyncTask {
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            Toast.makeText(MainActivity.this, "正在清除清理大师数据", Toast.LENGTH_SHORT).show();
-        }
-
-        @Override
-        protected void onPostExecute(Object o) {
-            super.onPostExecute(o);
-            Toast.makeText(MainActivity.this, "清理完成！", Toast.LENGTH_SHORT).show();
-        }
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-
-             CMDUtils.runCMD(" pm clear " + appPackageName, true, true);
-            return "  ";
-        }
-    }
 
 }
