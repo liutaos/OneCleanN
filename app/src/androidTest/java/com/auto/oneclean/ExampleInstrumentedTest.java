@@ -12,16 +12,21 @@ package com.auto.oneclean;
 import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
@@ -41,6 +46,7 @@ import androidx.test.uiautomator.Until;
 
 import com.auto.oneclean.tools.FileTools;
 import com.auto.oneclean.tools.ReadTextFile;
+import com.auto.oneclean.tools.RootCmd;
 
 import static org.junit.Assert.assertEquals;
 
@@ -51,7 +57,7 @@ import static org.junit.Assert.assertEquals;
  */
 @RunWith(AndroidJUnit4.class)
 public class ExampleInstrumentedTest {
-
+    public static final String TAG = "com.auto.oneclean";
     private Processer mProcesser;
     UiDevice mDevice;
     private static final String CLEAN_PKG_NAME = "android.lite.clean";
@@ -61,28 +67,33 @@ public class ExampleInstrumentedTest {
 
     public static String sms, cellPhoneNumberSJ, cellPhoneNumber;
 
+    public List<String> mApplist = new ArrayList();
+    public boolean next;
+    Context appContext;
+
+    RootCmd rootCmd;
 
     @Test
     public void useAppContext() {
         // Context of the app under test.
-        Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
         assertEquals("com.auto.oneclean", appContext.getPackageName());
         mDevice = UiDevice.getInstance(androidx.test.platform.app.InstrumentationRegistry.getInstrumentation());
         mProcesser = new Processer(mDevice, CLEAN_PKG_NAME);
+        rootCmd = new RootCmd();
+        unstallApp();
+        mProcesser.pritLog("======      正在清理 清理大师数据  = =======" + CLEAN_PKG_NAME);
+        //mDevice.executeShellCommand("pm clear " + CLEAN_PKG_NAME);
+        clear();
+        mProcesser.pritLog("======      已清理 清理大师数据  = =======" + CLEAN_PKG_NAME);
         try {
             ReadTextFile read = new ReadTextFile();
-            boolean no_number = false;
-            while (!no_number) {
+            while (true) {
                 //sms = null;
-                mProcesser.pritLog("======      正在清理 清理大师数据  = =======" + CLEAN_PKG_NAME);
-                //mDevice.executeShellCommand("pm clear " + CLEAN_PKG_NAME);
-                clear();
-                mProcesser.pritLog("======      已清理 清理大师数据  = =======" + CLEAN_PKG_NAME);
                 Thread.sleep(3 * 1000);
                 String phone_number = read.read("/storage/emulated/0/tmp_number.txt");
                 cellPhoneNumber = getStringNoBlank(phone_number);
-                if (cellPhoneNumber == "") {
-                    no_number = true;
+                if (cellPhoneNumber == "" || cellPhoneNumber == null) {
                     mProcesser.pritLog("脚本执行结束  号码为空");
                     break;
                 }
@@ -96,9 +107,14 @@ public class ExampleInstrumentedTest {
                 mProcesser.waitAMonent(2);
                 goToHomeInterface();
                 mProcesser.waitAMonent(2);
-                mainTasks();
+                if (next) {
+                    mainTasks();
+                }else{
+                    break;
+                }
                 mProcesser.pritLog("===================进行下一个号码=====================");
             }
+
         } catch (Exception e) {
             e.printStackTrace();
             mProcesser.pritLog("错误");
@@ -106,6 +122,7 @@ public class ExampleInstrumentedTest {
     }
 
     public static String getStringNoBlank(String str) {
+
         if (str != null && !"".equals(str)) {
             Pattern p = Pattern.compile("\\s*|\t|\r|\n");
             Matcher m = p.matcher(str);
@@ -116,24 +133,42 @@ public class ExampleInstrumentedTest {
         }
     }
 
+    /**
+     * 清理清理大师数据
+     */
     public void clear() {
-        try {
-            Process p = Runtime.getRuntime().exec("su");
-            DataOutputStream os = new DataOutputStream(p.getOutputStream());
-            DataInputStream is = new DataInputStream(p.getInputStream());
-            os.writeBytes("pm clear " + CLEAN_PKG_NAME + " \n");
-            os.flush();
-            os.writeBytes("echo test  \n");// 回显test 并获得test，确保上面的代码已经执行
-            os.flush();
-            String result = is.readLine();
-            os.writeBytes("exit\n");
-            os.flush();
-            os.close();
-            p.destroy();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        String result = rootCmd.execRootCmd("pm clear " + CLEAN_PKG_NAME);
+        Log.i("com.auto.oneclean", "清理清理大师数据   = " + result);
+    }
 
+    /**
+     * 卸载黑名单应用
+     */
+    public void unstallApp() {
+        //白名单
+        mApplist.add("de.robv.android.xposed.installer");
+        mApplist.add("android.lite.clean");
+        mApplist.add("zpp.wjy.xxsq");
+        mApplist.add("com.nhnhnhnnnnnnjjjijhjg.apt.yeshenqinglidashi");
+        mApplist.add("com.tencent.mm");
+        mApplist.add("com.xiezaiyy");
+        mApplist.add("com.topjohnwu.magisk");
+        mApplist.add("com.auto.oneclean");
+        mApplist.add("com.auto.oneclean.test");
+
+        String listPackage = rootCmd.execRootCmd("pm list package -3");
+        mProcesser.pritLog("包名：" + listPackage);
+
+        String[] ss = listPackage.split("package:");
+
+        for (String s : ss) {
+            if (!mApplist.contains(s)) {
+                Log.e("com.auto.oneclean", "正在卸载  package = " + s);
+                //黑名单
+                String result = rootCmd.execRootCmd("pm uninstall " + s);
+                Log.i("com.auto.oneclean", "卸载  package = " + result);
+            }
+        }
     }
 
     /**
@@ -287,6 +322,7 @@ public class ExampleInstrumentedTest {
                 }
             }
             if (sms == null) {
+                next = true;
                 System.out.println("==================   SMS  信息== 空  下一步 =========     " + sms);
                 return;
             }
@@ -346,9 +382,19 @@ public class ExampleInstrumentedTest {
         mProcesser.waitAMonent(2);
         UiObject detailed = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/zy"));
         System.out.println("=================  mainTasks () =  金币明细  开始========================");
+        //android.lite.clean:id/h_    android.widget.ImageView
         detailed.clickAndWaitForNewWindow();
+        UiObject closeWindow = new UiObject(new UiSelector().className("android.widget.ImageView").resourceId("android.lite.clean:id/h_"));
+        while (closeWindow == null) {
+            detailed.clickAndWaitForNewWindow();
+            Thread.sleep(1000);
+        }
         mProcesser.waitAMonent(3);
-        mDevice.pressBack();
+        if (closeWindow != null) {
+            closeWindow.clickAndWaitForNewWindow();
+        }
+        // mDevice.pressBack();
+
         System.out.println("=================  mainTasks () =  金币明细  结束========================");
         mProcesser.waitAMonent(3);
         // ========================  清理手机任务=========================
@@ -419,7 +465,11 @@ public class ExampleInstrumentedTest {
         new Thread(new Runnable() {
             @Override
             public void run() {
-
+                while (mDevice.hasObject(By.text("确定"))) {
+                    UiObject2 objNext = mDevice.wait(Until.findObject(By.text("确定")), 500);
+                    objNext.click();
+                    mProcesser.waitAMonent(1);
+                }
             }
         }).start();
         UiObject detailed = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/zy"));
@@ -435,14 +485,26 @@ public class ExampleInstrumentedTest {
         mProcesser.waitAMonent(1);
         // --------------------------试玩
         mProcesser.clickListView("android.lite.clean:id/a0i", position, 1);
-        mProcesser.waitAMonent(2);
+        Thread.sleep(2 * 1000);
+        if (!mDevice.hasObject(By.text("下载"))) {
+            mDevice.pressBack();
+            Log.e(TAG, "============   没有下载项 进行下一项任务 =============");
+            if (!mDevice.hasObject(By.text("金币明细"))) {
+                mDevice.swipe(x, 360, x, 1080, step);
+            }
+            detailed.clickAndWaitForNewWindow();
+            mProcesser.waitAMonent(2);
+            mDevice.pressBack();
+            return;
+        }
+
         //创建Random类对象
         Random random = new Random();
         int j, k;
         //===================   判断下载的项是否超过 5 或 3 ============
         List<UiObject2> objs = mDevice.wait(Until.findObjects(By.text("下载")), 500);
         boolean next = true;
-        if (objs.size() < 5) {
+        if (objs.size() <= i) {
             k = objs.size();
         } else {
             k = i;
@@ -452,22 +514,23 @@ public class ExampleInstrumentedTest {
             List<UiObject2> obj = mDevice.wait(Until.findObjects(By.text("下载")), 500);
             mProcesser.pritLog("============= 第几个循环    j  ==================" + j);
             //产生随机数
-            int number ;
+            int number;
             if (next) {
                 number = j;
+                while (obj.get(number) == null) {
+                    mDevice.swipe(x, 1080, x, 0, step);
+                    mProcesser.waitAMonent(1);
+                }
             } else {
                 number = random.nextInt(obj.size() - 1);
             }
-            while (obj.get(number) == null) {
-                mDevice.swipe(x, 1080, x, 0, step);
-                mProcesser.waitAMonent(1);
-            }
+
             mProcesser.waitAMonent(1);
             obj.get(number).click();
             boolean download = false;
             while (!download) {
                 mProcesser.pritLog("正在下载。。。。。。。。。。。。。。。。。。。。。。");
-                mProcesser.waitAMonent(10);
+                Thread.sleep(10 * 1000);
                 if (mDevice.hasObject(By.text("取消"))) {
                     download = true;
                     mProcesser.waitAMonent(1);
@@ -481,7 +544,7 @@ public class ExampleInstrumentedTest {
             }
 
             //if (mDevice.hasObject(By.text("安装"))) {
-            UiObject2 objInstall = mDevice.wait(Until.findObject(By.text("安装")), 500);
+            UiObject2 objInstall = mDevice.wait(Until.findObject(By.text("安装")), 1000);
             objInstall.click();
             //}
             mProcesser.waitAMonent(2);
@@ -511,7 +574,7 @@ public class ExampleInstrumentedTest {
             //---------------关闭打开的应用
             closeAPP();
             //领取金币
-            mProcesser.waitAMonent(1);
+            mProcesser.waitAMonent(2);
             while (mDevice.hasObject(By.text("确定"))) {
                 UiObject2 objNext = mDevice.wait(Until.findObject(By.text("确定")), 500);
                 objNext.click();
@@ -658,7 +721,7 @@ public class ExampleInstrumentedTest {
         //    System.out.println("日: " + now.get(Calendar.DAY_OF_MONTH));
         UiObject jBNumber = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/zw"));
         if (jBNumber != null) {
-            String jb = "==" + jBNumber.getText() + "\n";
+            String jb = "==" + jBNumber.getText() + " \n";
             //getSDCardPath();
             //mFile.writeTxtToFile(cellPhoneNumberSJ + jb, SDCARD, (now.get(Calendar.MONTH) + 1) + "-" + now.get(Calendar.DAY_OF_MONTH) + "-金币.txt");
             mFile.writeTxtToFile(cellPhoneNumber + jb, SDCARD, (now.get(Calendar.MONTH) + 1) + "-" + now.get(Calendar.DAY_OF_MONTH) + "-金币.txt");

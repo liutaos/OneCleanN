@@ -11,7 +11,10 @@ package com.auto.oneclean;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.renderscript.ScriptGroup;
@@ -23,6 +26,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.auto.oneclean.interfaces.InfoCallback;
@@ -49,17 +53,23 @@ public class MainActivity extends AppCompatActivity {
     private final String TMP = "/storage/emulated/0/tmp_number.txt";
 
     private InfoCallback mInfoCallback;
+    SharedPreferences userSettings;
+    TextView oldFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        userSettings = getSharedPreferences("old_file", 0);
+        oldFile = findViewById(R.id.old_file);
+        oldFile.setText("上次的文件名：" + userSettings.getString("olde_file", ""));
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         EditText inputs = findViewById(R.id.input_phone_number);
+
         inputs.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -74,12 +84,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
                 inPut = s.toString();
+                SharedPreferences.Editor editor = userSettings.edit();
+                editor.putString("olde_file", inPut);
+                editor.commit();
             }
         });
 
         findViewById(R.id.runBtn).setOnClickListener(new View.OnClickListener() {
+
             @Override
             public void onClick(View view) {
+                oldFile.setText("上次的文件名：" + userSettings.getString("olde_file", ""));
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -88,44 +103,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }).start();
                 new UiautomatorThread("com.auto.oneclean", "ExampleInstrumentedTest", "useAppContext").start();
+                Toast.makeText(getApplicationContext(), "运行任务中。。。。。", Toast.LENGTH_SHORT).show();
             }
         });
 
     }
-
-    public void initData() {
-
-        List<ApplicationInfo> applicationInfoList = getPackageManager().getInstalledApplications(0);
-        for (ApplicationInfo info : applicationInfoList) {
-            String packageName = info.packageName;
-            start_tag = "com.auto.";
-            end_tag = ".test";
-            if (packageName.startsWith(start_tag) && packageName.endsWith(end_tag)) {
-                String testName = packageName.replace(start_tag, "").replace(end_tag, "");
-                Log.e(TAG, "initView: packageName=" + testName);
-                RadioButton radioButton = new RadioButton(this);
-                radioButton.setText(testName);
-                radioGroup.addView(radioButton);
-            }
-        }
-    }
-
-
-    /**
-     * 点击按钮对应的方法
-     *
-     * @param v
-     */
-    public void runMyUiautomator(View v) {
-        //if (!TextUtils.isEmpty("oneclean")) {
-            String packgeName = "com.auto.oneclean";
-            Log.i(TAG, "runMyUiautomator: ");
-            new UiautomatorThread("com.auto.oneclean", "ExampleInstrumentedTest", "useAppContext").start();
-       // } else {
-         Toast.makeText(this, "请选择一个应用", Toast.LENGTH_SHORT).show();
-        //}
-
-    }
-
 
 }

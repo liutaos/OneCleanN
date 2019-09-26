@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ ********************************************************************************
+  ~         文 件：item_layout.xml     模 块：app      项 目：OneClean
+  ~         当前修改时间：2019年09月26日 10:47:10
+  ~         上次修改时间：2019年09月26日 10:47:10
+  ~         作者：liutaos@qq.com        Copyright (c) 2019
+  ~ ********************************************************************************
+  -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="35dp">
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1.5"
+        android:gravity="center|left"
+        android:text="@string/local_phone_text_file"
+        android:textColor="#0F0F0F"
+        android:textSize="12sp" />
+
+    <EditText
+        android:id="@+id/file_number"
+        android:layout_width="50dp"
+        android:layout_height="match_parent"
+        android:layout_weight="2.5" />
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1.5"
+        android:gravity="center|left"
+        android:text="@string/local_phone_text_file"
+        android:textColor="#0F0F0F"
+        android:textSize="12sp" />
+
+    <EditText
+        android:id="@+id/file_path"
+        android:layout_width="50dp"
+        android:layout_height="match_parent"
+        android:layout_weight="2.5" />
+</LinearLayout>

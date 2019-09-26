@@ -9,4 +9,8 @@
 
 <resources>
     <string name="app_name">OneClean</string>
+    <string name="saveconfig">保存配置</string>
+    <string name="stattask">启动</string>
+    <string name="local_phone_text_file">文件名:</string>
+    <string name="start">启动</string>
 </resources>
