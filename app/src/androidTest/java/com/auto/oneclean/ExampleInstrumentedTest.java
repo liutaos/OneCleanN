@@ -12,6 +12,7 @@ package com.auto.oneclean;
 import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
+import android.widget.ThemedSpinnerAdapter;
 import android.widget.Toast;
 
 import org.junit.Test;
@@ -40,7 +41,9 @@ import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
 import androidx.test.uiautomator.UiObject;
 import androidx.test.uiautomator.UiObject2;
+import androidx.test.uiautomator.UiObject2Condition;
 import androidx.test.uiautomator.UiObjectNotFoundException;
+import androidx.test.uiautomator.UiScrollable;
 import androidx.test.uiautomator.UiSelector;
 import androidx.test.uiautomator.Until;
 
@@ -63,15 +66,42 @@ public class ExampleInstrumentedTest {
     private static final String CLEAN_PKG_NAME = "android.lite.clean";
 
     private static final String STRING_TO_BE_TYPED = "UiAutomator";
-    private final String SDCARD = "/storage/emulated/0/Pictures/";
+    private final String SDCARD = "/storage/emulated/0/Out/";
 
     public static String sms, cellPhoneNumberSJ, cellPhoneNumber;
 
     public List<String> mApplist = new ArrayList();
-    public boolean next;
+    public boolean next = true;
     Context appContext;
-
+    public boolean canclled = true;
     RootCmd rootCmd;
+    Thread update = new Thread(new Runnable() {
+        @Override
+        public void run() {
+
+            while (canclled) {
+                mProcesser.waitAMonent(2);
+                try {
+                    //if (mProcesser.exitObjById("android.lite.clean:id/h5", 1)) {
+                    if (mDevice.hasObject(By.text("忽略"))) {
+                        mProcesser.pritLog("====================goToUpdate()=====================");
+                        UiObject2 ignore = mDevice.wait(Until.findObject(By.text("忽略")), 500);
+                        ignore.click();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    mProcesser.waitAMonent(1);
+                } finally {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            Log.e(TAG, "run: ======          join ()");
+        }
+    });
 
     @Test
     public void useAppContext() {
@@ -81,14 +111,15 @@ public class ExampleInstrumentedTest {
         mDevice = UiDevice.getInstance(androidx.test.platform.app.InstrumentationRegistry.getInstrumentation());
         mProcesser = new Processer(mDevice, CLEAN_PKG_NAME);
         rootCmd = new RootCmd();
-        unstallApp();
-        mProcesser.pritLog("======      正在清理 清理大师数据  = =======" + CLEAN_PKG_NAME);
-        //mDevice.executeShellCommand("pm clear " + CLEAN_PKG_NAME);
-        clear();
-        mProcesser.pritLog("======      已清理 清理大师数据  = =======" + CLEAN_PKG_NAME);
         try {
             ReadTextFile read = new ReadTextFile();
             while (true) {
+                canclled = true;
+                unstallApp();
+                mProcesser.pritLog("======      正在清理 清理大师数据  = =======" + CLEAN_PKG_NAME);
+                //mDevice.executeShellCommand("pm clear " + CLEAN_PKG_NAME);
+                clear();
+                mProcesser.pritLog("======      已清理 清理大师数据  = =======" + CLEAN_PKG_NAME);
                 //sms = null;
                 Thread.sleep(3 * 1000);
                 String phone_number = read.read("/storage/emulated/0/tmp_number.txt");
@@ -106,12 +137,19 @@ public class ExampleInstrumentedTest {
                 goToUpdate();
                 mProcesser.waitAMonent(2);
                 goToHomeInterface();
+                mProcesser.waitAMonent(1);
+                update.join(3);
+                goToCloseRedPkg();
                 mProcesser.waitAMonent(2);
                 if (next) {
+                    update.join(3);
                     mainTasks();
-                }else{
+                } else {
                     break;
                 }
+
+                canclled = false;
+                update.join();
                 mProcesser.pritLog("===================进行下一个号码=====================");
             }
 
@@ -155,6 +193,8 @@ public class ExampleInstrumentedTest {
         mApplist.add("com.topjohnwu.magisk");
         mApplist.add("com.auto.oneclean");
         mApplist.add("com.auto.oneclean.test");
+        mApplist.add("com.auto.onewechat");
+        mApplist.add("com.auto.onewechat.test");
 
         String listPackage = rootCmd.execRootCmd("pm list package -3");
         mProcesser.pritLog("包名：" + listPackage);
@@ -176,19 +216,25 @@ public class ExampleInstrumentedTest {
      */
     public void goToHomeInterface() {
         mProcesser.pritLog("====================goToHomeInterface()=====================");
-
         UiObject userLayout;
         try {
             userLayout = new UiObject(new UiSelector().className("android.widget.LinearLayout")
                     .resourceId("android.lite.clean:id/a6r"));
+            update.join(3);
             userLayout.click();
+            if (mDevice.hasObject(By.text("登录任务中心"))) {
+                UiObject2 sigin = mDevice.wait(Until.findObject(By.text("登录任务中心")), 500);
+                update.join(3);
+                sigin.click();
+                goSignIn();
+            }
         } catch (Exception e) {
             e.printStackTrace();
             mProcesser.waitAMonent(1);
             //mDevice.pressBack();
         }
         mProcesser.waitAMonent(1);
-        goToCloseRedPkg();
+        //goToCloseRedPkg();
     }
 
     /**
@@ -238,19 +284,8 @@ public class ExampleInstrumentedTest {
      * 清理大师更新提示 点击忽略
      */
     public void goToUpdate() {
-        mProcesser.pritLog("====================goToUpdate()=====================");
-        mProcesser.waitAMonent(2);
-        try {
-            if (mProcesser.exitObjById("android.lite.clean:id/h5", 1)) {
-                mDevice.pressBack();
-            } else {
-                goToHomeInterface();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            mProcesser.waitAMonent(1);
-            mDevice.pressBack();
-        }
+        update.start();
+        goToHomeInterface();
     }
 
 
@@ -265,16 +300,11 @@ public class ExampleInstrumentedTest {
 
         mProcesser.pritLog("====================goSignIn()=====================");
         try {
-            if (mProcesser.exitObjById("android.lite.clean:id/vj", 1)) {
-                System.out.println("=============== 点击手机号登录  ==============");
-                userSignIn = new UiObject(new UiSelector().className("android.widget.RelativeLayout").resourceId("android.lite.clean:id/vj"));
-                userSignIn.click();
-                mProcesser.waitAMonent(30);
-                while (mProcesser.exitObjById("android.lite.clean:id/vj", 1)) {
-                    mProcesser.waitAMonent(1);
-                    userSignIn.click();
-                    mProcesser.waitAMonent(30);
-                }
+            while (mDevice.hasObject(By.text("手机号码一键登录"))) {
+                UiObject2 userSignin = mDevice.wait(Until.findObject(By.text("手机号码一键登录")), 500);
+                userSignin.click();
+                mProcesser.waitAMonent(40);
+                Thread.sleep(40 * 1000);
             }
             mProcesser.pritLog("============== HttpGet()  初始化 请求数据 ===================");
             httpGet.getData();
@@ -322,7 +352,7 @@ public class ExampleInstrumentedTest {
                 }
             }
             if (sms == null) {
-                next = true;
+                next = false;
                 System.out.println("==================   SMS  信息== 空  下一步 =========     " + sms);
                 return;
             }
@@ -364,11 +394,17 @@ public class ExampleInstrumentedTest {
     /**
      * 知道了 按钮 点击
      */
-    public void okGotIt() throws UiObjectNotFoundException {
+    public void okGotIt() throws Exception {
 
-        UiObject ok_next = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/et"));
-        ok_next.click();
-        mProcesser.waitAMonent(1);
+        //UiObject ok_next = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/et"));
+        UiObject2 ok_next;
+        while (mDevice.hasObject(By.text("知道了"))) {
+            ok_next = mDevice.wait(Until.findObject(By.text("知道了")), 500);
+            ok_next.click();
+            mProcesser.waitAMonent(2);
+            Log.i(TAG, "点击知道了===========");
+            Thread.sleep(1000);
+        }
     }
 
     /**
@@ -380,54 +416,102 @@ public class ExampleInstrumentedTest {
         //金币明细  Details of gold coins
         System.out.println("=================  mainTasks () 执行业务模块 ========================");
         mProcesser.waitAMonent(2);
-        UiObject detailed = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/zy"));
         System.out.println("=================  mainTasks () =  金币明细  开始========================");
-        //android.lite.clean:id/h_    android.widget.ImageView
-        detailed.clickAndWaitForNewWindow();
-        UiObject closeWindow = new UiObject(new UiSelector().className("android.widget.ImageView").resourceId("android.lite.clean:id/h_"));
-        while (closeWindow == null) {
-            detailed.clickAndWaitForNewWindow();
-            Thread.sleep(1000);
-        }
+        UiObject2 detailed;
+        update.join(3);
+        detailed();
         mProcesser.waitAMonent(3);
-        if (closeWindow != null) {
-            closeWindow.clickAndWaitForNewWindow();
-        }
-        // mDevice.pressBack();
-
         System.out.println("=================  mainTasks () =  金币明细  结束========================");
-        mProcesser.waitAMonent(3);
+        while (!mDevice.hasObject(By.text("任务攻略"))) {
+            detailed();
+        }
+        update.join(3);
+        if (mDevice.hasObject(By.text("已完成"))) {
+            int step = 200 / 10;
+            int x = 1080 / 2;
+            if (!mDevice.hasObject(By.text("去试玩"))) {
+                mDevice.swipe(x, 1080, x, 0, step);
+            }
+            if (mDevice.wait(Until.findObjects(By.text("已完成")), 500).size() == 3) {
+                if (!mDevice.hasObject(By.text("金币明细"))) {
+                    mDevice.swipe(x, 360, x, 1080, step);
+                }
+                detailed();
+                writeOut();
+                Log.e(TAG, "mainTasks:  所有任务完成 下一个号码");
+                return;
+            }
+        }
+
+        update.join(3);
         // ========================  清理手机任务=========================
         clickClear();
         mProcesser.waitAMonent(2);
+        update.join(3);
         //===========================  试玩  ============================
         playApp(3, 2);
         mProcesser.waitAMonent(2);
+
         //============================ 观看  ===========================
         //WwatchVideo();
         //mProcesser.waitAMonent(2);
+        update.join(3);
         //========================  乐园  =================================13279508005
         game();
+
         mProcesser.pritLog("任务执行完毕================");
         mProcesser.waitAMonent(2);
+
         writeOut();
     }
 
     /**
+     * 刷新金币
+     */
+    public void detailed() throws Exception {
+        boolean closeDeataild = false;
+        //UiObject2 detailed;
+        UiObject detailed1, titleDetailde;
+        detailed1 = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/zy"));
+        if (detailed1 != null) {
+            mDevice.waitForWindowUpdate(CLEAN_PKG_NAME, 3 * 1000);
+            //detailed1 = mDevice.wait(Until.findObject(By.text("金币明细")), 500);
+            detailed1.click();
+            mDevice.waitForWindowUpdate(CLEAN_PKG_NAME, 3 * 1000);
+            Thread.sleep(3000);
+            Log.e(TAG, "  detailed1   " + detailed1);
+            titleDetailde = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/rw"));
+            if (titleDetailde.getText().equals("金币明细")) {
+                mProcesser.waitAMonent(1);
+                mDevice.pressBack();
+            }
+            Thread.sleep(1000);
+
+        }
+    }
+
+
+    /**
      * 点击清理任务
      */
-    public void clickClear() throws UiObjectNotFoundException {
-        UiObject detailed = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/zy"));
-        if (detailed.clickAndWaitForNewWindow()) {
-            mProcesser.waitAMonent(3);
-            mDevice.pressBack();
-        }
-        System.out.println("=================  mainTasks () =  金币明细  结束========================");
-        mProcesser.waitAMonent(3);
+    public void clickClear() throws Exception {
+        Log.e(TAG, "clickClear: ============   clickClear   =======  ");
+        //detailed();
         int step = 200 / 10;
         int x = 1080 / 2;
         if (!mDevice.hasObject(By.text("去试玩"))) {
             mDevice.swipe(x, 1080, x, 0, step);
+        }
+
+        List<UiObject2> getitem = mDevice.wait(Until.findObject(By.res("android.lite.clean:id/a0i")), 500).getChildren().get(1).getChildren();
+        if (getitem.get(5).getText().equals("已完成")) {
+            if (!mDevice.hasObject(By.text("金币明细"))) {
+                mDevice.swipe(x, 360, x, 1080, step);
+            }
+            Log.e(TAG, "clickClear:    已完成任务  进行下一项任务 ");
+            detailed();
+            Thread.sleep(1000);
+            return;
         }
         mProcesser.clickListView("android.lite.clean:id/a0i", 1, 1);
         UiObject cleanPhone = new UiObject(new UiSelector().className("android.widget.Button").instance(0));
@@ -436,21 +520,29 @@ public class ExampleInstrumentedTest {
             goToHomeInterface();
             return;
         }
-        cleanPhone.click();
-        mProcesser.waitAMonent(2);
+        if (cleanPhone != null) {
+            cleanPhone.click();
+        } else {
+            mDevice.wait(Until.findObject(By.text("清鲤福利")), 500).click();
+        }
+        mProcesser.waitAMonent(6);
         //领取金币
-        UiObject receive = new UiObject(new UiSelector().className("android.widget.RelativeLayout").resourceId("android.lite.clean:id/gr"));
-        receive.click();
+        Thread.sleep(3 * 1000);
+        while (mDevice.hasObject(By.text("领取"))) {
+            Log.e(TAG, "clickClear: ============   receive.click()   =======  ");
+            mProcesser.waitAMonent(1);
+            UiObject receive = new UiObject(new UiSelector().className("android.widget.RelativeLayout").resourceId("android.lite.clean:id/gr"));
+            receive.click();
+        }
+
         mProcesser.waitAMonent(1);
         okGotIt();
         if (!mDevice.hasObject(By.text("金币明细"))) {
             mDevice.swipe(x, 360, x, 1080, step);
         }
-        if (detailed != null) {
-            detailed.clickAndWaitForNewWindow();
-            mProcesser.waitAMonent(2);
-            mDevice.pressBack();
-        }
+        //  领金币后刷新金币
+        detailed();
+        Thread.sleep(1000);
     }
 
 
@@ -465,14 +557,19 @@ public class ExampleInstrumentedTest {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while (mDevice.hasObject(By.text("确定"))) {
+                while (true) {
                     UiObject2 objNext = mDevice.wait(Until.findObject(By.text("确定")), 500);
-                    objNext.click();
-                    mProcesser.waitAMonent(1);
+                    if (objNext != null) {
+                        Log.e(TAG, "=========     点击  程序ANR提示错误的 确定    =============");
+                        objNext.click();
+                        mProcesser.waitAMonent(1);
+                    }
                 }
             }
         }).start();
-        UiObject detailed = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/zy"));
+        UiObject2 detailed;
+        //detailed();
+        //}
         int step = 200 / 10;
         int x = 1080 / 2;
         //解锁屏幕 从屏幕底部往上面0坐标滑动
@@ -481,20 +578,31 @@ public class ExampleInstrumentedTest {
 
             mDevice.swipe(x, 1080, x, 0, step);
         }
-        //scroll(Direction direction, float percent)
-        mProcesser.waitAMonent(1);
-        // --------------------------试玩
-        mProcesser.clickListView("android.lite.clean:id/a0i", position, 1);
-        Thread.sleep(2 * 1000);
-        if (!mDevice.hasObject(By.text("下载"))) {
-            mDevice.pressBack();
-            Log.e(TAG, "============   没有下载项 进行下一项任务 =============");
+        List<UiObject2> getitem = mDevice.wait(Until.findObject(By.res("android.lite.clean:id/a0i")), 500).getChildren().get(position).getChildren();
+        if (getitem.get(5).getText().equals("已完成")) {
             if (!mDevice.hasObject(By.text("金币明细"))) {
                 mDevice.swipe(x, 360, x, 1080, step);
             }
-            detailed.clickAndWaitForNewWindow();
+            Log.e(TAG, "playApp:    已完成任务  进行下一项任务 ");
+            detailed();
+            Thread.sleep(1000);
+            return;
+        }
+        //scroll(Direction direction, float percent)
+        mProcesser.waitAMonent(3);
+        // --------------------------试玩
+        mProcesser.clickListView("android.lite.clean:id/a0i", position, 1);
+        Thread.sleep(3 * 1000);
+        if (!mDevice.hasObject(By.text("下载"))) {
             mProcesser.waitAMonent(2);
             mDevice.pressBack();
+            mProcesser.waitAMonent(2);
+            if (!mDevice.hasObject(By.text("金币明细"))) {
+                mDevice.swipe(x, 360, x, 1080, step);
+            }
+            detailed();
+            Log.e(TAG, "============   没有下载项 进行下一项任务 =============");
+
             return;
         }
 
@@ -510,43 +618,58 @@ public class ExampleInstrumentedTest {
             k = i;
             next = false;
         }
-        for (j = 0; j < k; j++) {
+        for (j = 0; j <= k; j++) {
             List<UiObject2> obj = mDevice.wait(Until.findObjects(By.text("下载")), 500);
             mProcesser.pritLog("============= 第几个循环    j  ==================" + j);
             //产生随机数
             int number;
             if (next) {
                 number = j;
-                while (obj.get(number) == null) {
-                    mDevice.swipe(x, 1080, x, 0, step);
-                    mProcesser.waitAMonent(1);
-                }
+                obj.get(0).click();
             } else {
                 number = random.nextInt(obj.size() - 1);
+                obj.get(number).click();
             }
-
             mProcesser.waitAMonent(1);
-            obj.get(number).click();
+
             boolean download = false;
             while (!download) {
                 mProcesser.pritLog("正在下载。。。。。。。。。。。。。。。。。。。。。。");
                 Thread.sleep(10 * 1000);
+                mProcesser.waitAMonent(1);
                 if (mDevice.hasObject(By.text("取消"))) {
+                    mProcesser.pritLog("下载完成自动安装。。。。。。。。。。。。。。。。。。。。。。");
                     download = true;
                     mProcesser.waitAMonent(1);
+                    Thread.sleep(500);
+                }
+                //自动打开已下载的APP失败 处理
+                if (mDevice.hasObject(By.text("安装"))) {
+                    UiObject2 install = mDevice.wait(Until.findObject(By.text("安装")), 500);
+                    install.click();
                 }
             }
             mProcesser.waitAMonent(1);
+            Thread.sleep(1000);
             while (mDevice.hasObject(By.text("下一步"))) {
                 UiObject2 objNext = mDevice.wait(Until.findObject(By.text("下一步")), 500);
                 objNext.click();
                 mProcesser.waitAMonent(1);
+                Thread.sleep(1000);
             }
-
-            //if (mDevice.hasObject(By.text("安装"))) {
-            UiObject2 objInstall = mDevice.wait(Until.findObject(By.text("安装")), 1000);
-            objInstall.click();
-            //}
+            mProcesser.waitAMonent(2);
+            Thread.sleep(1500);
+            while (mDevice.hasObject(By.text("安装"))) {
+                Log.e(TAG, "playApp: 正在安装--------------");
+                UiObject2 objInstall = mDevice.wait(Until.findObject(By.text("安装")), 500);
+                if (objInstall == null) {
+                    break;
+                } else {
+                    objInstall.click();
+                }
+                mProcesser.waitAMonent(2);
+                Thread.sleep(1000);
+            }
             mProcesser.waitAMonent(2);
             boolean lising = false;
             while (!lising) {
@@ -573,12 +696,18 @@ public class ExampleInstrumentedTest {
             }
             //---------------关闭打开的应用
             closeAPP();
-            //领取金币
-            mProcesser.waitAMonent(2);
-            while (mDevice.hasObject(By.text("确定"))) {
-                UiObject2 objNext = mDevice.wait(Until.findObject(By.text("确定")), 500);
-                objNext.click();
+            if (mDevice.hasObject(By.text("试玩失败"))) {
+                UiObject2 failedtrial;
+                while (mDevice.hasObject(By.text("知道了"))) {
+                    failedtrial = mDevice.wait(Until.findObject(By.text("知道了")), 500);
+                    failedtrial.click();
+                    mProcesser.waitAMonent(2);
+                    Log.i(TAG, "点击知道了===========");
+                }
+                break;
             }
+            //领取金币
+            mProcesser.waitAMonent(3);
             okGotIt();
             mProcesser.waitAMonent(1);
         }
@@ -589,9 +718,8 @@ public class ExampleInstrumentedTest {
         if (!mDevice.hasObject(By.text("金币明细"))) {
             mDevice.swipe(x, 360, x, 1080, step);
         }
-        detailed.clickAndWaitForNewWindow();
-        mProcesser.waitAMonent(2);
-        mDevice.pressBack();
+        //  领金币后刷新金币
+        detailed();
         mProcesser.waitAMonent(2);
 
     }
@@ -603,7 +731,7 @@ public class ExampleInstrumentedTest {
      */
     public void open() throws UiObjectNotFoundException {
         UiObject2 objClear;
-        mProcesser.waitAMonent(2);
+        mProcesser.waitAMonent(3);
         if (mDevice.hasObject(By.text("打开领取"))) {
             objClear = mDevice.wait(Until.findObject(By.text("打开领取")), 500);
             objClear.click();
@@ -614,21 +742,27 @@ public class ExampleInstrumentedTest {
             //解锁屏幕 从屏幕底部往上面0坐标滑动
             mDevice.swipe(x, 1080, x, 0, step);
             //scroll(Direction direction, float percent)
-            mProcesser.waitAMonent(1);
+            objClear = mDevice.wait(Until.findObject(By.text("打开领取")), 500);
+            mProcesser.waitAMonent(3);
             if (mDevice.hasObject(By.text("打开领取"))) {
-                objClear = mDevice.wait(Until.findObject(By.text("打开领取")), 500);
                 objClear.click();
             } else {
                 mDevice.swipe(x, 1080, x, 0, step);
-                mProcesser.waitAMonent(2);
-                objClear = mDevice.wait(Until.findObject(By.text("打开领取")), 500);
-                objClear.click();
+                mProcesser.waitAMonent(3);
+                if (mDevice.hasObject(By.text("打开领取"))) {
+                    objClear.click();
+                }
             }
-            mProcesser.waitAMonent(1);
+            mProcesser.waitAMonent(3);
         }
         mProcesser.waitAMonent(2);
     }
 
+    /**
+     * 关闭自动打开的应用
+     *
+     * @throws Exception
+     */
     public void closeAPP() throws Exception {
         //  ===============   关闭自动打开的APP
 
@@ -645,13 +779,14 @@ public class ExampleInstrumentedTest {
             UiObject2 objClear = mDevice.wait(Until.findObject(By.text("立即清理")), 500);
             objClear.click();
             mProcesser.waitAMonent(1);
+            Thread.sleep(500);
         }
     }
 
     /**
      * 观看视频
      */
-    public void WwatchVideo() throws UiObjectNotFoundException {
+    public void WwatchVideo() throws Exception {
         int step = 200 / 10;
         int x = 1080 / 2;
         //解锁屏幕 从屏幕底部往上面0坐标滑动
@@ -695,6 +830,9 @@ public class ExampleInstrumentedTest {
         if (!mDevice.hasObject(By.text("金币明细"))) {
             mDevice.swipe(x, 0, x, 1080, step);
         }
+        while (!mDevice.hasObject(By.text("金币明细"))) {
+            mProcesser.waitAMonent(1);
+        }
         mProcesser.waitAMonent(1);
         detailed.click();
         mProcesser.waitAMonent(2);
@@ -719,6 +857,7 @@ public class ExampleInstrumentedTest {
         Calendar now = Calendar.getInstance();
         //   System.out.println("月: " + (now.get(Calendar.MONTH) + 1) + "");
         //    System.out.println("日: " + now.get(Calendar.DAY_OF_MONTH));
+        mProcesser.waitAMonent(3);
         UiObject jBNumber = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/zw"));
         if (jBNumber != null) {
             String jb = "==" + jBNumber.getText() + " \n";

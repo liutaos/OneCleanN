@@ -39,8 +39,8 @@ public class HttpGet {
     private Response response;
     private TextView mTextiew;
     private static String mResponseData = "";
-
-    private static final String URL_API = "http://39.98.47.121:9091/api";
+    private static final String URL_API ="http://47.244.25.193:9091/api";
+    //private static final String URL_API = "http://39.98.47.121:9091/api";  旧地址
     private static final String URL_loginName = "wurui";
     private static final String URL_password = "wurui456";
     private static final String URL_devSecretkey = "8969CAC5DE960CA29E76C0D10CC8D092";
@@ -80,7 +80,7 @@ public class HttpGet {
         Log.i(TAG, "        =========== doInBackground: ==========" + mResponseData);
         // 刷新token
         if (mRoot.getCode() == "-1") {
-            String TOUCKEN_URL = URL_API + "refreshToken/v1?token=" + TOCKEN;
+            String TOUCKEN_URL = URL_API + "/refreshToken/v1?token=" + TOCKEN;
             httpRequest(TOUCKEN_URL);
             tockenUP(mResponseData);
         }
@@ -174,9 +174,9 @@ public class HttpGet {
      */
 
     public void singOut() {
-        httpRequest("http://39.98.47.121:9091/api/releasePhoneNo/v1?token=" + TOCKEN + "&phoneNo=" + Cell_phone_number);
+        httpRequest(URL_API+"/releasePhoneNo/v1?token=" + TOCKEN + "&phoneNo=" + Cell_phone_number);
         System.out.println("++++++++++++++++ 释放了++++++++++++++++++" + mResponseData);
-        httpRequest("http://39.98.47.121:9091/api/loginOut/v1?token=" + TOCKEN);
+        httpRequest(URL_API+"/loginOut/v1?token=" + TOCKEN);
         System.out.println("++++++++++++++++ 退出登录了++++++++++++++++++" + mResponseData);
     }
 
@@ -251,7 +251,7 @@ public class HttpGet {
     }
 
     public void reopengetData() {
-        httpRequest("http://39.98.47.121:9091/api/loginOut/v1?token=" + TOCKEN);
+        httpRequest(URL_API+"/loginOut/v1?token=" + TOCKEN);
         getData();
         getSmsMsg(Cell_phone_number);
     }
