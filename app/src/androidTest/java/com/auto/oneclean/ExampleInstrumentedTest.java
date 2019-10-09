@@ -75,72 +75,79 @@ public class ExampleInstrumentedTest {
     Context appContext;
     public boolean canclled = true;
     RootCmd rootCmd;
-    Thread update = new Thread(new Runnable() {
-        @Override
-        public void run() {
-
-            while (canclled) {
-                mProcesser.waitAMonent(2);
-                try {
-                    //if (mProcesser.exitObjById("android.lite.clean:id/h5", 1)) {
-                    if (mDevice.hasObject(By.text("忽略"))) {
-                        mProcesser.pritLog("====================goToUpdate()=====================");
-                        UiObject2 ignore = mDevice.wait(Until.findObject(By.text("忽略")), 500);
-                        ignore.click();
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    mProcesser.waitAMonent(1);
-                } finally {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            Log.e(TAG, "run: ======          join ()");
-        }
-    });
+    Thread update;
 
     @Test
-    public void useAppContext() {
+    public void useAppContext() throws Exception {
         // Context of the app under test.
         appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
         assertEquals("com.auto.oneclean", appContext.getPackageName());
         mDevice = UiDevice.getInstance(androidx.test.platform.app.InstrumentationRegistry.getInstrumentation());
         mProcesser = new Processer(mDevice, CLEAN_PKG_NAME);
         rootCmd = new RootCmd();
-        try {
-            ReadTextFile read = new ReadTextFile();
-            while (true) {
-                canclled = true;
-                unstallApp();
-                mProcesser.pritLog("======      正在清理 清理大师数据  = =======" + CLEAN_PKG_NAME);
-                //mDevice.executeShellCommand("pm clear " + CLEAN_PKG_NAME);
-                clear();
-                mProcesser.pritLog("======      已清理 清理大师数据  = =======" + CLEAN_PKG_NAME);
-                //sms = null;
-                Thread.sleep(3 * 1000);
-                String phone_number = read.read("/storage/emulated/0/tmp_number.txt");
-                cellPhoneNumber = getStringNoBlank(phone_number);
-                if (cellPhoneNumber == "" || cellPhoneNumber == null) {
-                    mProcesser.pritLog("脚本执行结束  号码为空");
-                    break;
+        ReadTextFile read = new ReadTextFile();
+        //  无线循环运行 直至没有手机号码停止运行
+        while (true) {
+
+            update = new Thread(new Runnable() {
+                @Override
+                public void run() {
+
+                    while (canclled) {
+                        mProcesser.waitAMonent(2);
+                        try {
+                            //if (mProcesser.exitObjById("android.lite.clean:id/h5", 1)) {
+                            if (mDevice.hasObject(By.text("忽略"))) {
+                                mProcesser.pritLog("====================goToUpdate()=====================");
+                                UiObject2 ignore = mDevice.wait(Until.findObject(By.text("忽略")), 500);
+                                ignore.click();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            mProcesser.waitAMonent(1);
+                        } finally {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                    Log.e(TAG, "run: ======          join ()");
                 }
-                Thread.sleep(3 * 1000);
-                read.write("/storage/emulated/0/tmp_number.txt");
-                Thread.sleep(3 * 1000);
-                mProcesser.startApp();
-                mProcesser.waitAMonent(10);
-                goToOneStart();
-                goToUpdate();
-                mProcesser.waitAMonent(2);
-                goToHomeInterface();
-                mProcesser.waitAMonent(1);
-                update.join(3);
-                goToCloseRedPkg();
-                mProcesser.waitAMonent(2);
+            });
+            canclled = true;
+            unstallApp();
+            mProcesser.pritLog("======      正在清理 清理大师数据  = =======" + CLEAN_PKG_NAME);
+            //mDevice.executeShellCommand("pm clear " + CLEAN_PKG_NAME);
+            clear();
+            mProcesser.pritLog("======      已清理 清理大师数据  = =======" + CLEAN_PKG_NAME);
+            //sms = null;
+            Thread.sleep(3 * 1000);
+            String phone_number = read.read("/storage/emulated/0/tmp_number.txt");
+            cellPhoneNumber = getStringNoBlank(phone_number);
+            if (cellPhoneNumber == "" || cellPhoneNumber == null) {
+                mProcesser.pritLog("脚本执行结束  号码为空");
+                break;
+            }
+            Thread.sleep(3 * 1000);
+            read.write("/storage/emulated/0/tmp_number.txt");
+            Thread.sleep(3 * 1000);
+            mProcesser.startApp();
+            mProcesser.waitAMonent(10);
+            goToOneStart();
+            goToUpdate();
+            mProcesser.waitAMonent(2);
+            goToHomeInterface();
+            mProcesser.waitAMonent(1);
+            update.join(3);
+            goToCloseRedPkg();
+            if(sms == null){
+                Log.e(TAG, "useAppContext:   短信获取失败 进行下一个号码" );
+                continue;
+            }
+            mProcesser.waitAMonent(2);
+            try {
                 if (next) {
                     update.join(3);
                     mainTasks();
@@ -148,14 +155,29 @@ public class ExampleInstrumentedTest {
                     break;
                 }
 
-                canclled = false;
-                update.join();
-                mProcesser.pritLog("===================进行下一个号码=====================");
-            }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            mProcesser.pritLog("错误");
+            } catch (Exception e) {
+                e.printStackTrace();
+                mProcesser.pritLog("程序异常重启运行中。。。。");
+                try {
+                    mDevice.executeShellCommand("am force-stop " + CLEAN_PKG_NAME);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+                mProcesser.startApp();
+                mProcesser.waitAMonent(10);
+                update.join(3);
+                if (mDevice.hasObject(By.text("清鲤福利"))) {
+                    mDevice.wait(Until.findObject(By.text("清鲤福利")), 500).click();
+                    mProcesser.waitAMonent(2);
+                    update.join(3);
+                    mainTasks();
+                }
+            }
+            canclled = false;
+            update.join();
+            mProcesser.pritLog("===================进行下一个号码=====================");
+
         }
     }
 
@@ -231,7 +253,16 @@ public class ExampleInstrumentedTest {
         } catch (Exception e) {
             e.printStackTrace();
             mProcesser.waitAMonent(1);
+            if(sms == null){
+                Log.e(TAG, "useAppContext:   短信获取失败 进行下一个号码" );
+                return;
+            }
             //mDevice.pressBack();
+        }finally {
+            if(sms == null){
+                Log.e(TAG, "useAppContext:   短信获取失败 进行下一个号码" );
+                return;
+            }
         }
         mProcesser.waitAMonent(1);
         //goToCloseRedPkg();
@@ -402,7 +433,7 @@ public class ExampleInstrumentedTest {
             ok_next = mDevice.wait(Until.findObject(By.text("知道了")), 500);
             ok_next.click();
             mProcesser.waitAMonent(2);
-            Log.i(TAG, "点击知道了===========");
+            Log.i(TAG, "点击知道了=====1111======");
             Thread.sleep(1000);
         }
     }
@@ -417,6 +448,12 @@ public class ExampleInstrumentedTest {
         System.out.println("=================  mainTasks () 执行业务模块 ========================");
         mProcesser.waitAMonent(2);
         System.out.println("=================  mainTasks () =  金币明细  开始========================");
+        if (mDevice.hasObject(By.text("当前网络不畅通，可点击重试"))) {
+            //android.lite.clean:id/a0j   android.widget.FrameLayout
+            UiObject refreshNetwork = new UiObject(new UiSelector().className("android.widget.FrameLayout").resourceId("android.lite.clean:id/a0j"));
+            refreshNetwork.click();
+            mProcesser.waitAMonent(3);
+        }
         UiObject2 detailed;
         update.join(3);
         detailed();
@@ -473,13 +510,14 @@ public class ExampleInstrumentedTest {
         //UiObject2 detailed;
         UiObject detailed1, titleDetailde;
         detailed1 = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/zy"));
-        if (detailed1 != null) {
+        UiObject2 detailed2 = mDevice.wait(Until.findObject(By.text("金币明细")), 500);
+        if (detailed2 != null) {
             mDevice.waitForWindowUpdate(CLEAN_PKG_NAME, 3 * 1000);
             //detailed1 = mDevice.wait(Until.findObject(By.text("金币明细")), 500);
-            detailed1.click();
+            detailed2.click();
             mDevice.waitForWindowUpdate(CLEAN_PKG_NAME, 3 * 1000);
             Thread.sleep(3000);
-            Log.e(TAG, "  detailed1   " + detailed1);
+            //Log.e(TAG, "  detailed1   " + detailed2);
             titleDetailde = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/rw"));
             if (titleDetailde.getText().equals("金币明细")) {
                 mProcesser.waitAMonent(1);
@@ -487,6 +525,10 @@ public class ExampleInstrumentedTest {
             }
             Thread.sleep(1000);
 
+        } else if (mDevice.hasObject(By.text("清鲤福利"))) {
+            mDevice.wait(Until.findObject(By.text("清鲤福利")), 500).click();
+            mProcesser.waitAMonent(2);
+            mainTasks();
         }
     }
 
@@ -527,7 +569,8 @@ public class ExampleInstrumentedTest {
         }
         mProcesser.waitAMonent(6);
         //领取金币
-        Thread.sleep(3 * 1000);
+        Thread.sleep(6 * 1000);
+        mProcesser.waitAMonent(1);
         while (mDevice.hasObject(By.text("领取"))) {
             Log.e(TAG, "clickClear: ============   receive.click()   =======  ");
             mProcesser.waitAMonent(1);
@@ -659,7 +702,7 @@ public class ExampleInstrumentedTest {
             }
             mProcesser.waitAMonent(2);
             Thread.sleep(1500);
-            while (mDevice.hasObject(By.text("安装"))) {
+            if (mDevice.hasObject(By.text("安装"))) {
                 Log.e(TAG, "playApp: 正在安装--------------");
                 UiObject2 objInstall = mDevice.wait(Until.findObject(By.text("安装")), 500);
                 if (objInstall == null) {
