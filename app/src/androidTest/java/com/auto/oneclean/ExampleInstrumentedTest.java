@@ -88,11 +88,9 @@ public class ExampleInstrumentedTest {
         ReadTextFile read = new ReadTextFile();
         //  无线循环运行 直至没有手机号码停止运行
         while (true) {
-
             update = new Thread(new Runnable() {
                 @Override
                 public void run() {
-
                     while (canclled) {
                         mProcesser.waitAMonent(2);
                         try {
@@ -142,17 +140,14 @@ public class ExampleInstrumentedTest {
             mProcesser.waitAMonent(1);
             update.join(3);
             goToCloseRedPkg();
-            if(sms == null){
-                Log.e(TAG, "useAppContext:   短信获取失败 进行下一个号码" );
-                continue;
-            }
             mProcesser.waitAMonent(2);
             try {
                 if (next) {
                     update.join(3);
                     mainTasks();
                 } else {
-                    break;
+                    Log.e(TAG, "useAppContext: SMS = null 进行下一个号码" );
+                    continue;
                 }
 
 
@@ -217,6 +212,8 @@ public class ExampleInstrumentedTest {
         mApplist.add("com.auto.oneclean.test");
         mApplist.add("com.auto.onewechat");
         mApplist.add("com.auto.onewechat.test");
+        mApplist.add("com.ryeinformationtechnology.automation");
+        mApplist.add("com.ryeinformationtechnology.automation.test");
 
         String listPackage = rootCmd.execRootCmd("pm list package -3");
         mProcesser.pritLog("包名：" + listPackage);
@@ -253,16 +250,7 @@ public class ExampleInstrumentedTest {
         } catch (Exception e) {
             e.printStackTrace();
             mProcesser.waitAMonent(1);
-            if(sms == null){
-                Log.e(TAG, "useAppContext:   短信获取失败 进行下一个号码" );
-                return;
-            }
             //mDevice.pressBack();
-        }finally {
-            if(sms == null){
-                Log.e(TAG, "useAppContext:   短信获取失败 进行下一个号码" );
-                return;
-            }
         }
         mProcesser.waitAMonent(1);
         //goToCloseRedPkg();
@@ -411,9 +399,9 @@ public class ExampleInstrumentedTest {
         }
         UiObject smstext1 = new UiObject(new UiSelector().className("android.widget.TextView").instance(2));
         smstext1.legacySetText(sms_number);
-        sms = null;
         mProcesser.waitAMonent(2);
         httpGet.singOut();
+        sms = null;
         //okGotIt();
         if (mDevice.hasObject(By.text("知道了"))) {
             UiObject2 objNext = mDevice.wait(Until.findObject(By.text("知道了")), 500);
@@ -455,6 +443,7 @@ public class ExampleInstrumentedTest {
             mProcesser.waitAMonent(3);
         }
         UiObject2 detailed;
+        mProcesser.waitAMonent(3);
         update.join(3);
         detailed();
         mProcesser.waitAMonent(3);
@@ -512,15 +501,15 @@ public class ExampleInstrumentedTest {
         detailed1 = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/zy"));
         UiObject2 detailed2 = mDevice.wait(Until.findObject(By.text("金币明细")), 500);
         if (detailed2 != null) {
-            mDevice.waitForWindowUpdate(CLEAN_PKG_NAME, 3 * 1000);
+            mProcesser.waitAMonent(5);
             //detailed1 = mDevice.wait(Until.findObject(By.text("金币明细")), 500);
             detailed2.click();
-            mDevice.waitForWindowUpdate(CLEAN_PKG_NAME, 3 * 1000);
+            mProcesser.waitAMonent(3);
             Thread.sleep(3000);
             //Log.e(TAG, "  detailed1   " + detailed2);
             titleDetailde = new UiObject(new UiSelector().className("android.widget.TextView").resourceId("android.lite.clean:id/rw"));
             if (titleDetailde.getText().equals("金币明细")) {
-                mProcesser.waitAMonent(1);
+                mProcesser.waitAMonent(3);
                 mDevice.pressBack();
             }
             Thread.sleep(1000);
@@ -618,7 +607,6 @@ public class ExampleInstrumentedTest {
         //解锁屏幕 从屏幕底部往上面0坐标滑动
 
         if (!mDevice.hasObject(By.text("去试玩"))) {
-
             mDevice.swipe(x, 1080, x, 0, step);
         }
         List<UiObject2> getitem = mDevice.wait(Until.findObject(By.res("android.lite.clean:id/a0i")), 500).getChildren().get(position).getChildren();
@@ -662,15 +650,24 @@ public class ExampleInstrumentedTest {
             next = false;
         }
         for (j = 0; j <= k; j++) {
+
             List<UiObject2> obj = mDevice.wait(Until.findObjects(By.text("下载")), 500);
             mProcesser.pritLog("============= 第几个循环    j  ==================" + j);
             //产生随机数
             int number;
+
+
             if (next) {
                 number = j;
                 obj.get(0).click();
             } else {
                 number = random.nextInt(obj.size() - 1);
+                Log.e(TAG, "playApp: "+number );
+                List<UiObject2> getitems = mDevice.wait(Until.findObject(By.res("android.lite.clean:id/q_")), 500).getChildren().get(number).getChildren();
+                //屏蔽  微视
+                if (getitems.get(0).getChildren().get(1).getChildren().get(0).getText().equals("微视(送红包)")) {
+                    number++;
+                }
                 obj.get(number).click();
             }
             mProcesser.waitAMonent(1);
